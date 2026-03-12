@@ -18,9 +18,9 @@ const App: React.FC = () => {
   const [vaultV2, setVaultV2] = useState<SavingsVault | null>(null);
   const [vaultV3, setVaultV3] = useState<SavingsVault | null>(null);
 
-  const [shares1, setShares1] = useState<number | null>(null);
-  const [shares2, setShares2] = useState<number | null>(null);
-  const [shares3, setShares3] = useState<number | null>(null);
+  const [withdrawable1, setWithdrawable1] = useState<number | null>(null);
+  const [withdrawable2, setWithdrawable2] = useState<number | null>(null);
+  const [withdrawable3, setWithdrawable3] = useState<number | null>(null);
 
   useEffect(() => {
     if (!vaultV1 || !vaultV2 || !vaultV3 || !account) return;
@@ -57,7 +57,7 @@ const App: React.FC = () => {
     }
   };
 
-  const redeemShares = async (vault: SavingsVault) => {
+  const redeem = async (vault: SavingsVault) => {
     if (vault && account) {
       try {
         const s1 = await vault.balanceOf(account);
@@ -72,56 +72,152 @@ const App: React.FC = () => {
   const getState = async () => {
     console.log('getting state...',!!vaultV1);
     if (!!account && !!vaultV1 && !!vaultV2 && !!vaultV3) {
-        const s1 = await vaultV1.balanceOf(account);
+        const s1 = await vaultV1.maxWithdraw(account);
         console.log("s1:", s1.toString());
-        const s2 = await vaultV2.balanceOf(account);
-        const s3 = await vaultV3.balanceOf(account);
-        const decimals1 = await vaultV1.decimals();
-        const decimals2 = await vaultV2.decimals();
-        const decimals3 = await vaultV3.decimals();
-        const shares1 = Number(formatUnits(s1, decimals1))
-        const shares2 = Number(formatUnits(s2, decimals2))
-        const shares3 = Number(formatUnits(s3, decimals3))
-        // const shares1 = 1
-        // const shares2 = 2
-        // const shares3 = 3
-        setShares1(shares1);
-        setShares2(shares2);
-        setShares3(shares3);
-        
-        console.log("vault v1 shares:", shares1.toString());
-        console.log("vault v2 shares:", shares2.toString());
-        console.log("vault v3 shares:", shares3.toString());
+        const s2 = await vaultV2.maxWithdraw(account);
+        const s3 = await vaultV3.maxWithdraw(account);
+        const shares1 = Number(formatUnits(s1, 18))
+        const shares2 = Number(formatUnits(s2, 18))
+        const shares3 = Number(formatUnits(s3, 18))
+        // const name = await vaultV1.name();
+        // console.log("vault name1:", name);
+        // const name2 = await vaultV2.name();
+        // console.log("vault name2:", name2);
+        // const name3 = await vaultV3.name();
+        // console.log("vault name3:", name3);
+        setWithdrawable1(shares1);
+        setWithdrawable2(shares2);
+        setWithdrawable3(shares3);
     }
   };
 
-  return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h2>Redeem Yala Lite Mode Shares</h2>
-      {!account ? (
-        <button onClick={connectWallet}>connect wallet</button>
-      ) : (
+  const Item = ({ title, amount, vault, redeem }: {title: string, amount: any, vault: any, redeem: any }) => {
+    const canWithdraw = vault && amount && amount > 0;
+    const waitingConnect = amount == null;
+    return (
+      <div
+        style={{
+          padding: "16px",
+          border: "1px solid #eee",
+          borderRadius: "10px",
+          marginBottom: "12px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          background: "#fafafa",
+        }}
+      >
         <div>
-          <p>wallet connected: {account}</p>
-          <p>YLPS1 shares: {shares1} {vaultV1 && shares1 && shares1 > 0 ? (
-            <button onClick={() => redeemShares(vaultV1)}>Redeem YLPS1</button>
-          ) : (
-            <div></div>
-          )}</p>
-          <p>YLPS2 shares: {shares2} {vaultV2 && shares2 && shares2 > 0 ? (
-            <button onClick={() => redeemShares(vaultV2)}>Redeem YLPS2</button>
-          ) : (
-            <div></div>
-          )}</p>
-          <p>YLPS3 shares: {shares3} {vaultV3 && shares3 && shares3 > 0 ? (
-            <button onClick={() => redeemShares(vaultV3)}>Redeem YLPS3</button>
-          ) : (
-            <div></div>
-          )}</p>
+          <div style={{ fontWeight: "bold" }}>{title}</div>
+          <div style={{ marginTop: "4px", color: "#555" }}>
+            Withdrawable: {amount == null? "-": `${amount} YU`} 
+          </div>
         </div>
+
+        {waitingConnect ? (<div></div>): canWithdraw? (
+          <button
+            onClick={() => redeem(vault)}
+            style={{
+              padding: "8px 16px",
+              borderRadius: "6px",
+              border: "none",
+              background: "#4f46e5",
+              color: "white",
+              cursor: "pointer",
+            }}
+          >
+            Withdraw
+          </button>
+        ):(<div>Nothing to withdraw</div>)}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      style={{
+        maxWidth: "600px",
+        margin: "40px auto",
+        padding: "24px",
+        fontFamily: "Arial",
+        border: "1px solid #eee",
+        borderRadius: "12px",
+        background: "white",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+      }}
+    >
+      <h2 style={{ marginBottom: "20px" }}>
+        Redeem Yala Lite Mode Shares
+      </h2>
+
+      {!account ? (
+        <button
+          onClick={connectWallet}
+          style={{
+            padding: "10px 18px",
+            borderRadius: "8px",
+            border: "none",
+            background: "#16a34a",
+            color: "white",
+            cursor: "pointer",
+          }}
+        >
+          Connect Wallet
+        </button>
+      ) : (
+        <p style={{ marginBottom: "20px", color: "#555" }}>
+          Wallet connected: {account}
+        </p>
       )}
+
+      <Item
+        title="Yala Lite Mode 08/07/2025"
+        amount={withdrawable1}
+        vault={vaultV1}
+        redeem={redeem}
+      />
+      <Item
+        title="Yala Lite Mode 08/21/2025"
+        amount={withdrawable2}
+        vault={vaultV2}
+        redeem={redeem}
+      />
+      <Item
+        title="Yala Lite Mode 09/18/2025"
+        amount={withdrawable3}
+        vault={vaultV3}
+        redeem={redeem}
+      />
     </div>
   );
+
+  // return (
+  //   <div style={{ padding: "20px", fontFamily: "Arial" }}>
+  //     <h2>Redeem Yala Lite Mode Shares</h2>
+  //     {!account ? (
+  //       <button onClick={connectWallet}>connect wallet</button>
+  //     ) : (
+  //       <div>
+  //         <p>wallet connected: {account}</p>
+  //       </div>
+  //     )}
+  //     <p>Withdrawable YU for Yala Lite Mode 08/07/2025: {redeem1 && redeem1 > 0 ? redeem1 : "0"} {vaultV1 && redeem1 && redeem1 > 0 ? (
+  //           <button onClick={() => redeem(vaultV1)}>Withdraw</button>
+  //         ) : (
+  //           <div></div>
+  //         )}</p>
+  //         <p>Withdrawable YU for Yala Lite Mode 08/21/2025:: {redeem2 && redeem2 > 0 ? redeem2 : "0"} {vaultV2 && redeem2 && redeem2 > 0 ? (
+  //           <button onClick={() => redeem(vaultV2)}>Withdraw</button>
+  //         ) : (
+  //           <div></div>
+  //         )}</p>
+  //         <p>Withdrawable YU for Yala Lite Mode 09/18/2025:: {redeem3 && redeem3 > 0 ? redeem3 : "0"} {vaultV3 && redeem3 && redeem3 > 0 ? (
+  //           <button onClick={() => redeem(vaultV3)}>Withdraw</button>
+  //         ) : (
+  //           <div></div>
+  //         )}</p>
+  //   </div>
+  // );
 };
 
 export default App;
